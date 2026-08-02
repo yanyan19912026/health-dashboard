@@ -983,7 +983,7 @@
     </div>
     <div class="sheet-actions">
       <button class="sheet-btn btn-delete" onclick="closeMealSheet()">取消</button>
-      <button class="sheet-btn btn-confirm" onclick="publishMeal()">发布</button>
+      <button class="sheet-btn btn-confirm" id="publish-meal-btn" type="button">发布</button>
     </div>
   </div>
 </div>
@@ -1931,6 +1931,16 @@ function togglePeriodToday() {
 // ==================== 饮食 ====================
 var mealImages = [];
 
+document.addEventListener('DOMContentLoaded', function(){
+  var pubBtn = document.getElementById('publish-meal-btn');
+  if (pubBtn) {
+    pubBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      publishMeal();
+    });
+  }
+});
+
 function openMealSheet() {
   mealImages = [];
   document.getElementById('meal-text').value = '';
@@ -2003,18 +2013,17 @@ function publishMeal() {
   try {
     var text = document.getElementById('meal-text').value.trim();
     if (!text && !mealImages.length) { toast('请输入文字或添加图片'); return; }
-    var confirmBtn = document.querySelector('#meal-sheet button[onclick="publishMeal()"]');
-    if (confirmBtn) confirmBtn.textContent = '发布中...';
     saveMeal(today(), text, mealImages.slice(), null);
+    document.getElementById('meal-text').value = '';
+    mealImages = [];
+    document.getElementById('post-images').innerHTML = '';
     closeMealSheet();
     toast('✅ 发布成功！');
     renderMeals();
   } catch (e) {
     toast('发布失败：' + (e.message || '未知错误'));
-    console.error(e);
+    console.error('publishMeal error:', e);
   }
-  var confirmBtn2 = document.querySelector('#meal-sheet button[onclick="publishMeal()"]');
-  if (confirmBtn2) confirmBtn2.textContent = '发布';
 }
 
 function renderMeals() {
