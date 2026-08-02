@@ -1936,6 +1936,7 @@ function openMealSheet() {
   document.getElementById('meal-text').value = '';
   document.getElementById('post-images').innerHTML = '';
   document.getElementById('meal-sheet').classList.add('show');
+  setTimeout(function(){ document.getElementById('meal-text').focus(); }, 100);
 }
 
 function closeMealSheet() {
@@ -1954,14 +1955,32 @@ function onPostImagesPicked(input) {
     (function(file){
       var reader = new FileReader();
       reader.onload = function(e) {
-        mealImages.push(e.target.result);
-        loaded++;
-        if (loaded === toAdd) renderPostImages();
+        compressImage(e.target.result, 1200, 0.85, function(compressed){
+          mealImages.push(compressed);
+          loaded++;
+          if (loaded === toAdd) renderPostImages();
+        });
       };
+      reader.onerror = function() { loaded++; toast('读取图片失败'); if (loaded === toAdd) renderPostImages(); };
       reader.readAsDataURL(file);
     })(files[i]);
   }
   input.value = '';
+}
+
+function compressImage(src, maxWidth, quality, callback) {
+  var img = new Image();
+  img.onload = function() {
+    var canvas = document.createElement('canvas');
+    var w = img.width, h = img.height;
+    if (w > maxWidth) { h = h * (maxWidth / w); w = maxWidth; }
+    canvas.width = w; canvas.height = h;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+    callback(canvas.toDataURL('image/jpeg', quality));
+  };
+  img.onerror = function() { callback(src); };
+  img.src = src;
 }
 
 function renderPostImages() {
@@ -1981,11 +2000,21 @@ function removePostImg(idx) {
 }
 
 function publishMeal() {
-  var text = document.getElementById('meal-text').value.trim();
-  if (!text && !mealImages.length) { toast('请输入文字或添加图片'); return; }
-  saveMeal(today(), text, mealImages.slice(), null);
-  closeMealSheet(); toast('✅ 发布成功！');
-  renderMeals();
+  try {
+    var text = document.getElementById('meal-text').value.trim();
+    if (!text && !mealImages.length) { toast('请输入文字或添加图片'); return; }
+    var confirmBtn = document.querySelector('#meal-sheet button[onclick="publishMeal()"]');
+    if (confirmBtn) confirmBtn.textContent = '发布中...';
+    saveMeal(today(), text, mealImages.slice(), null);
+    closeMealSheet();
+    toast('✅ 发布成功！');
+    renderMeals();
+  } catch (e) {
+    toast('发布失败：' + (e.message || '未知错误'));
+    console.error(e);
+  }
+  var confirmBtn2 = document.querySelector('#meal-sheet button[onclick="publishMeal()"]');
+  if (confirmBtn2) confirmBtn2.textContent = '发布';
 }
 
 function renderMeals() {
